@@ -49,18 +49,17 @@ if page == "Overview":
     st.markdown("*Predict · Explain · Prioritize · Retain*")
     st.markdown("---")
 
-    # KPI cards
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("Total Customers",    f"{len(scorecard):,}")
+        st.metric("Total Customers", f"{len(scorecard):,}")
     with col2:
         high = len(scorecard[scorecard['risk_tier']=='HIGH'])
-        st.metric("High Risk",          f"{high:,}",
+        st.metric("High Risk", f"{high:,}",
                   delta=f"{high/len(scorecard)*100:.1f}% of total",
                   delta_color="inverse")
     with col3:
         revenue = scorecard[scorecard['risk_tier']=='HIGH']['CLV'].sum()
-        st.metric("Revenue at Risk",    f"${revenue:,.0f}")
+        st.metric("Revenue at Risk", f"${revenue:,.0f}")
     with col4:
         avg_prob = scorecard['churn_probability'].mean()
         st.metric("Avg Churn Probability", f"{avg_prob*100:.1f}%")
@@ -74,9 +73,9 @@ if page == "Overview":
         tier_counts = scorecard['risk_tier'].value_counts()
         colors = {'HIGH':'#F44336','MEDIUM':'#FF9800','LOW':'#4CAF50'}
         fig, ax = plt.subplots(figsize=(6, 4))
-        bars = ax.bar(tier_counts.index, tier_counts.values,
-                      color=[colors[t] for t in tier_counts.index],
-                      width=0.5, edgecolor='white')
+        ax.bar(tier_counts.index, tier_counts.values,
+               color=[colors[t] for t in tier_counts.index],
+               width=0.5, edgecolor='white')
         for p in ax.patches:
             ax.annotate(f'{int(p.get_height())}',
                         (p.get_x()+p.get_width()/2, p.get_height()),
@@ -102,6 +101,7 @@ if page == "Overview":
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         st.pyplot(fig)
+        plt.close()
 
     st.markdown("---")
     st.subheader("Key Insights from SHAP Analysis")
@@ -123,7 +123,6 @@ elif page == "Customer Risk Scorecard":
     st.markdown("All customers ranked by priority score (Churn Probability × CLV)")
     st.markdown("---")
 
-    # Filters
     col1, col2, col3 = st.columns(3)
     with col1:
         tier_filter = st.multiselect(
@@ -157,8 +156,9 @@ elif page == "Customer Risk Scorecard":
                     'CLV', 'priority_score', 'Contract',
                     'tenure', 'MonthlyCharges', 'top_risk_factors']
 
+    # ✅ FIXED — applymap changed to map
     styled = filtered[display_cols].style\
-        .applymap(color_tier, subset=['risk_tier'])\
+        .map(color_tier, subset=['risk_tier'])\
         .format({'churn_probability': '{:.1%}',
                  'CLV': '${:,.0f}',
                  'priority_score': '{:,.0f}',
@@ -178,12 +178,12 @@ elif page == "Customer Risk Scorecard":
         st.metric("Avg Monthly Charges",
                   f"${filtered['MonthlyCharges'].mean():,.2f}")
 
+# PAGE 3 — INDIVIDUAL CUSTOMER ANALYSIS
 elif page == "Individual Customer Analysis":
     st.title("Individual Customer Analysis")
     st.markdown("Deep dive into any customer's churn risk with SHAP explanation")
     st.markdown("---")
 
-    # Customer selector
     customer_idx = st.slider(
         "Select Customer (by priority rank)",
         1, len(scorecard), 1
@@ -216,7 +216,6 @@ elif page == "Individual Customer Analysis":
     with col2:
         st.subheader("SHAP Explanation — Why is this customer at risk?")
 
-        # Get SHAP values for this customer
         shap_row = shap_vals.drop(
             columns=['churn_probability','top_risk_factors'],
             errors='ignore'
@@ -229,10 +228,10 @@ elif page == "Individual Customer Analysis":
                        for v in shap_vals_plot.values]
 
         fig, ax = plt.subplots(figsize=(8, 5))
-        bars = ax.barh(range(len(shap_vals_plot)),
-                       shap_vals_plot.values,
-                       color=colors_shap, alpha=0.85,
-                       edgecolor='white')
+        ax.barh(range(len(shap_vals_plot)),
+                shap_vals_plot.values,
+                color=colors_shap, alpha=0.85,
+                edgecolor='white')
         ax.set_yticks(range(len(shap_vals_plot)))
         ax.set_yticklabels(shap_vals_plot.index, fontsize=10)
         ax.axvline(x=0, color='black', linewidth=0.8)
@@ -245,7 +244,6 @@ elif page == "Individual Customer Analysis":
         st.pyplot(fig)
         plt.close()
 
-    # Recommendation
     st.markdown("---")
     st.subheader("Recommended Action")
     if tier == 'HIGH':
