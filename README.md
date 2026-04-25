@@ -167,4 +167,4 @@ MITS, Gwalior
 
 ---
 
-## 📌 Semester 4 | Mini Project | 2024
+## 📌 Semester 4 | Macro Project 
